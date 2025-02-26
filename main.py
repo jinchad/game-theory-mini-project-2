@@ -35,69 +35,163 @@ class TreeNode:
         self.down = down
         self.right = right
 
-def build_tree(number_of_cycles):
+def build_tree(number_of_cycles:int) -> tuple[TreeNode, TreeNode]:
+    """
+    This function is used to build a binary tree with depth number_of_cycles. 
+
+    The binary tree will only be expanded on the right child and will carry a "centipede"-like structure.
+
+    Args:
+        number_of_cycles (int): the depth of the binary tree to be generated
+    
+    Returns:
+        root (TreeNode): TreeNode reference to the root node
+        pointer (TreeNode): TreeNode reference to the parent node at the lowest depth
+    """
+    # string id for each node generated, with "S" representing start
     id = "S"
+
+    # initializing the root and pointer references, both pointing to the root node
     root = pointer = TreeNode(id, player = "T1")
 
+    # for loop iterating for number_of_cycles times, from 1 to number_of_cycles + 1
     for cycle in range(1, number_of_cycles+1):
-        # generating initial node for cycle
-        pointer.down = TreeNode(key = id+"D", payoff = (cycle if cycle == 1 else cycle+1 , max(cycle-1, 0)), parent = pointer)
-
+        # generating "down" child node
+        pointer.down = TreeNode(key = id+"D", 
+                                payoff = (cycle if cycle == 1 else cycle+1 , max(cycle-1, 0)), 
+                                parent = pointer
+                                )
+        
+        # if statement checking if this is the final iteration of the for loop. 
         if cycle == number_of_cycles:
-            pointer.right = TreeNode(key = id + "R", payoff=(number_of_cycles, number_of_cycles), parent=pointer)
-
+            # setting the final "right" child node
+            pointer.right = TreeNode(key = id + "R", 
+                                     payoff = (number_of_cycles, number_of_cycles), 
+                                     arent = pointer
+                                     )
         else:
-            # updating id
+            # updating id with "R" which represents the pointer moving right
             id += "R"
-            pointer.right = TreeNode(id, player="S"+str(cycle), parent=pointer)
 
-            # moving pointer to the right node
+            # setting the "right" child node to be an "empty" choice node
+            pointer.right = TreeNode(key = id, 
+                                     player = "S"+str(cycle), 
+                                     parent = pointer
+                                     )
+
+            # moving pointer to the right child node
             pointer = pointer.right
+            
+            # setting the "down" child node with it's respective payoff
+            pointer.down = TreeNode(key = id+"D", 
+                                    payoff=(max(cycle-1, 0), cycle+1), 
+                                    parent = pointer
+                                    )
 
-            pointer.down = TreeNode(id+"D", payoff=(max(cycle-1, 0), cycle+1), parent = pointer)
-
-            # updating id with choice
+            # updating id with "R" which represents the pointer moving right
             id += "R"
+
+            # setting the "right" child node to be an empty choice node
             pointer.right = TreeNode(key = id, player="T"+str(cycle+1), parent=pointer)
+
+            # moving the pointer to the right child node
             pointer = pointer.right
     
     return root, pointer
 
-def find_better(node: TreeNode):
+def find_better(node: TreeNode) -> TreeNode | None:
+    """
+    This function is used to determine the node with better payoffs that will be returned with backtracking.
+
+    Args:
+        node (TreeNode): TreeNode referencing the target node whose child nodes will be compared
+    
+    Return:
+        node (TreeNode): TreeNode with it's payoff replaced with the "best payoff"
+    """
+    # if statement checking if node is None
     if node:
+        # obtaining the first character which determines the player who will be making the choice this turn
         turn = node.player[0]
+
+        # if statement checking if it's the "T" player turn to choose
         if turn == "T":
+            # obtaining the respective payoffs for "T" players from both child nodes
             payoff1 = node.down.payoff[0]
             payoff2 = node.right.payoff[0]
+        # elif statement checking if it's the "S" player turn to choose
         elif turn == "S":
+            # obtaining the respective payoffs for "S" players from both child nodes
             payoff1 = node.down.payoff[1]
             payoff2 = node.right.payoff[1]
         else:
+            # None returned if the player's turn could not be determined. Error handling will be required for a more refined project here.
             return None
         
+        # setting the payoff of the target node to the payoff of the "better node"
         node.payoff = node.down.payoff if payoff1 > payoff2 else node.right.payoff
         
+        # returning original input node with new payoffs
         return node
+
+    # returning the node (which will be None), if it's None
     return node
 
-def find_spe(node:TreeNode):
+def find_spe_node(node:TreeNode) -> TreeNode:
+    """
+    This function is used to find the subgame perfect equilibrium (spe) payoff.
+
+    This function works by working up a binary tree from the lowest parent node of the binary tree and iteratively comparing the payoffs of the child nodes.
+
+    Args:
+        node(TreeNode): usually the lowest parent node of the binary tree, which will find the node with the spe payoff
+
+    Return:
+        best_node(TreeNode): TreeNode referencing a node containg the spe payoff
+    """
+    # finding and storing the node with the better payoff
     best_node = find_better(node)
+
+    # while loop that loops while best_node has a parent node
     while best_node.parent:
+        # replacing best_node with the node with better payoff at the parents level
         best_node = find_better(best_node.parent)
+
+    # final comparison between child nodes at the root level to determine the best payoff
     best_node = find_better(best_node)
+
+    # returning the node containing the best spe payoff
     return best_node
 
-def calculate_poa(node:TreeNode, spe_node:TreeNode):
+def calculate_poa(node:TreeNode, spe_node:TreeNode) -> float:
+    """
+    This function is used to calculate the price of anarchy (poa) of the generated binary tree.
+
+    This function assumes that the centipede pattern holds through to the final node, hence the social optimum outcome will be at the final leaf node. 
+
+    Args:
+        node (TreeNode): lowest parent node of the binary tree
+        spe_node (TreeNode): TreeNode with the spe payoff
+
+    Return:
+        poa (float): the poa of the binary tree
+    """
+    # obtaining the best payoff from the binary tree
     best_payoff = node.right.payoff
+
+    # obtaining the social optimal outcome from the best payoff
     social_optimal_outcome = sum(best_payoff)
+
+    # obtaining the spe payoff
     spe_payoff = spe_node.payoff
 
+    # calculating the poa, which is the social optimum outcome divided by the spe outcome
     poa = social_optimal_outcome/sum(spe_payoff)
+
+    # returning the calculated poa
     return poa
-    
 
-
-def visualize_binary_tree(root: TreeNode, spe_node: TreeNode = None) -> None:
+def visualize_binary_tree(root: TreeNode, spe_node: TreeNode) -> None:
     """
     This function is used to generate an image visualization of the binary tree. The resulting image will be of 'png' format and the resulting node from rational NE is highlighted in red. 
 
@@ -157,12 +251,10 @@ def visualize_binary_tree(root: TreeNode, spe_node: TreeNode = None) -> None:
     # output png file showing a visual of the generated binary tree
     dot.render('binary_tree', view=True, format='png')
 
-
-
 if __name__ == "__main__":
     k = int(input("Number of cycles: "))
     root, lowest_parent_node = build_tree(number_of_cycles=k)
-    spe_node = find_spe(lowest_parent_node)
+    spe_node = find_spe_node(lowest_parent_node)
     poa = calculate_poa(node = lowest_parent_node, spe_node=spe_node)
     print("The SPE payoff will be", spe_node.payoff)
     print("The PoA is", poa)
