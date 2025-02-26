@@ -212,51 +212,69 @@ def visualize_binary_tree(root: TreeNode, spe_node: TreeNode) -> None:
 
     def add_nodes_edges(node: TreeNode) -> None:
         """
-        This function is used to add the directed edges to the respective nodes
+        This function is used to add child nodes and directed edges to the respective nodes
 
         Args:
             node (TreeNode): TreeNode referencing the target node
-            unique_id (str): unique id for the node on graphviz diagram
 
         Return:
             None
         """
+        # if statement checking if the payoff for the "down" child is equal to the payoff for the spe_node
         if node.down.payoff == spe_node.payoff:
+            # creates a node with red fill if so
             dot.node(node.down.key, label = str(node.down.payoff), style='filled', fillcolor='red')
         else:
+            # else create a regular leaf node
             dot.node(node.down.key, label = str(node.down.payoff))
 
-
+        # if statement checking if the right child has a right child node of its own. Essentially checking if the right child node is a leaf node of the tree.
         if node.right.right:
-            if node.right.payoff == spe_node.payoff:
-                dot.node(node.right.key, label = node.right.player, style='filled', fillcolor='red')
-            else:
-                dot.node(node.right.key, label = node.right.player)
-
+            # creating a child node with player move as the node label
+            dot.node(node.right.key, label = node.right.player)
         else:
+            # if statement checking if the payoff of the right child node is equal to that of the spe_node
             if node.right.payoff == spe_node.payoff:
+                # creating a node with red fill if so
                 dot.node(node.right.key, label = str(node.right.payoff), style='filled', fillcolor='red')
-
             else:
+                # else create a regular leaf node 
                 dot.node(node.right.key, label = str(node.right.payoff))
-
+        # creating the edge connecting the parent node to the respective childs with labels representing the choice
         dot.edge(node.key, node.down.key, label = "D")
         dot.edge(node.key, node.right.key, label = "R")
 
+    # creating the root node
     dot.node(root.key, label = root.player)
+
+    # while loop that loops while root is not a leaf node
     while root.right:
+        # add node edges for the root node
         add_nodes_edges(root)
+
+        # shifting root pointer to the right
         root = root.right
 
     # output png file showing a visual of the generated binary tree
     dot.render('binary_tree', view=True, format='png')
 
 if __name__ == "__main__":
+    # user input for the number of cycles
     k = int(input("Number of cycles: "))
+
+    # building the centipede structured binary tree and obtaining the root and lowest_parent_nodes
     root, lowest_parent_node = build_tree(number_of_cycles=k)
+
+    # obtaining the spe_node for the binary tree
     spe_node = find_spe_node(lowest_parent_node)
+
+    # calculating the poa of the binary tree
     poa = calculate_poa(node = lowest_parent_node, spe_node=spe_node)
+
+    # print statements for the spe payoffs and the PoA
     print("The SPE payoff will be", spe_node.payoff)
     print("The PoA is", poa)
+
+    # creating png visualization of the generated binary tree
     visualize_binary_tree(root, spe_node)
             
