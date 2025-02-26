@@ -59,7 +59,7 @@ source venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 4. Run the project at game_theory_mini_project.py
+### 4. Run the project at main.py
 
 ## Declaration of use of AI
 
